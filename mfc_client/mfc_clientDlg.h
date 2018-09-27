@@ -39,4 +39,5 @@ public:
 	afx_msg void OnBnClickedButtonStarstream();
 	afx_msg void OnBnClickedButtonConndev();
 	afx_msg void OnSelchangeComboLoglevel();
+	afx_msg void OnBnClickedButton1();
 };

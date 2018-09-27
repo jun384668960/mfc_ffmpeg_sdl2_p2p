@@ -86,6 +86,7 @@ BEGIN_MESSAGE_MAP(Cmfc_clientDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BUTTON_STARSTREAM, &Cmfc_clientDlg::OnBnClickedButtonStarstream)
 	ON_BN_CLICKED(IDC_BUTTON_CONNDEV, &Cmfc_clientDlg::OnBnClickedButtonConndev)
 	ON_CBN_SELCHANGE(IDC_COMBO_LOGLEVEL, &Cmfc_clientDlg::OnSelchangeComboLoglevel)
+	ON_BN_CLICKED(IDC_BUTTON1, &Cmfc_clientDlg::OnBnClickedButton1)
 END_MESSAGE_MAP()
 
 
@@ -267,12 +268,13 @@ void FuncDecodeCallback(AVFrame* pFrame, bool isVideo)
 void Cmfc_clientDlg::ThirdPartInit()
 {
 	//默认参数"", "119.23.128.209", 6000, "A99762101001002"
-	SetDlgItemText(IDC_EDIT_DISPATCH, "119.23.128.209:6001");
-	SetDlgItemText(IDC_EDIT_STATCSERVER, "119.23.128.209");
+	SetDlgItemText(IDC_COMBO_DISPATCH, "119.23.128.209:6001");
+	SetDlgItemText(IDC_COMBO_STATICSERVER, "119.23.128.209");
 	SetDlgItemText(IDC_EDIT_STATICPORT, "6000");
-	SetDlgItemText(IDC_EDIT_UID, "A99762101001002");
-	SetDlgItemText(IDC_COMBO_CONNMODE, "TCP一对多");
+	SetDlgItemText(IDC_EDIT_UID, "A99762101001001");
+	SetDlgItemText(IDC_COMBO_CONNMODE, "P2P穿透");
 	SetDlgItemText(IDC_COMBO_LOGLEVEL, "Debug");
+	((CButton*)GetDlgItem(IDC_CHECK_DISPATCH))->SetCheck(TRUE);
 
 	//P2P初始化
 	ConnHandle::GlobleInit();
@@ -332,9 +334,9 @@ void Cmfc_clientDlg::OnBnClickedButtonPlay()
 	{
 		//获取参数
 		CString csDispatch;
-		GetDlgItemText(IDC_EDIT_DISPATCH, csDispatch);
+		GetDlgItemText(IDC_COMBO_DISPATCH, csDispatch);
 		CString csServer;
-		GetDlgItemText(IDC_EDIT_STATCSERVER, csServer);
+		GetDlgItemText(IDC_COMBO_STATICSERVER, csServer);
 		CString csPort;
 		GetDlgItemText(IDC_EDIT_STATICPORT, csPort);
 		CString csUid;
@@ -366,10 +368,20 @@ void Cmfc_clientDlg::OnBnClickedButtonPlay()
 			gGssHandle = NULL;
 			return;
 		}
-		if (mode == CONN_TYPE_P2P_1V1)
+
+		bool useDispatch = false;
+		if (BST_CHECKED == IsDlgButtonChecked(IDC_CHECK_DISPATCH))
+			useDispatch = true;
+
+		if (mode == CONN_TYPE_TCP_1VN_PULL)
+		{
+			ConnGssPull* gssPull = (ConnGssPull*)gGssHandle;
+			gssPull->ServerConnect(true, useDispatch);
+		} 
+		else
 		{
 			ConnGssP2p* gssP2p = (ConnGssP2p*)gGssHandle;
-			gssP2p->ServerConnect(true);
+			gssP2p->ServerConnect(true, useDispatch);
 		}
 
 		SetDlgItemText(IDC_BUTTON_PLAY, "断开服务");
@@ -470,10 +482,12 @@ void Cmfc_clientDlg::OnBnClickedButtonStarstream()
 		{
 			//发送开始取流指令
 			ret = gGssHandle->Send(gP2pClientId, CMD_START_VIDEO_START, "start", 0);
+			ret = gGssHandle->Send(gP2pClientId, CMD_START_AUDIO_START, "start", 0);
 			if (ret)
 			{
-				SetDlgItemText(IDC_BUTTON_STARSTREAM, "断开");
+			SetDlgItemText(IDC_BUTTON_STARSTREAM, "断开");
 			}
+			
 		}
 	}
 	else
@@ -487,10 +501,12 @@ void Cmfc_clientDlg::OnBnClickedButtonStarstream()
 		{
 			//发送开始断流指令
 			ret = gGssHandle->Send(gP2pClientId, CMD_START_VIDEO_STOP, "stop", 0);
+			ret = gGssHandle->Send(gP2pClientId, CMD_START_AUDIO_STOP, "stop", 0);
 			if (ret)
 			{
 				SetDlgItemText(IDC_BUTTON_STARSTREAM, "取流");
 			}
+			
 		}
 		
 	}
@@ -521,19 +537,31 @@ void Cmfc_clientDlg::OnBnClickedButtonConndev()
 		}
 		CString csUid;
 		ConnGssP2p* gssP2p = (ConnGssP2p*)gGssHandle;
-		GetDlgItemText(IDC_EDIT_UID, csUid);
-		gP2pClientId = 0;
-		int id = gssP2p->CreateNewConnAv((char*)csUid.GetBuffer(0));
-		if (id == 0)
+
+		CString connDev;
+		GetDlgItemText(IDC_BUTTON_CONNDEV, connDev);
+		if (connDev == "连接设备")
 		{
-			LOGE_print("CreateNewConnAv Start error");
-			SetDlgItemText(IDC_BUTTON_CONNDEV, "连接设备");
-			return;
+			GetDlgItemText(IDC_EDIT_UID, csUid);
+			gP2pClientId = 0;
+			int id = gssP2p->CreateNewConnAv((char*)csUid.GetBuffer(0));
+			if (id == 0)
+			{
+				LOGE_print("CreateNewConnAv Start error");
+				SetDlgItemText(IDC_BUTTON_CONNDEV, "连接设备");
+				return;
+			}
+			else
+			{
+				gP2pClientId = id;
+				SetDlgItemText(IDC_BUTTON_CONNDEV, "断开设备");
+				SetDlgItemText(IDC_BUTTON_STARSTREAM, "取流");
+			}
 		}
 		else
 		{
-			gP2pClientId = id;
-			SetDlgItemText(IDC_BUTTON_CONNDEV, "断开设备");
+			gssP2p->ClearAvClient();
+			SetDlgItemText(IDC_BUTTON_CONNDEV, "连接设备");
 			SetDlgItemText(IDC_BUTTON_STARSTREAM, "取流");
 		}
 	}
@@ -546,4 +574,12 @@ void Cmfc_clientDlg::OnSelchangeComboLoglevel()
 	CComboBox* cbx = (CComboBox*)GetDlgItem(IDC_COMBO_LOGLEVEL);
 	int index = cbx->GetCurSel();
 	Log::getInstance()->SetLevle(index);
+}
+
+
+void Cmfc_clientDlg::OnBnClickedButton1()
+{
+	// TODO:  在此添加控件通知处理程序代码
+	//发送开始断流指令
+	gGssHandle->Send(gP2pClientId, IOTYPE_USER_IPCAM_SETSTREAMCTRL_REQ, "stop", 0);
 }

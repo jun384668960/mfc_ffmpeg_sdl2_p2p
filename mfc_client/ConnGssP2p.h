@@ -18,8 +18,9 @@ public:
 	virtual bool Stop();
 
 public:
-	bool ServerConnect(bool isClient);
+	bool ServerConnect(bool isClient, bool useDispatch);
 	bool ServerDisconnect();
+	bool ClearAvClient();
 	int  CreateNewConnAv(char* uid);
 
 	static void on_create_complete(p2p_transport *transport, int status, void *user_data);
@@ -29,9 +30,8 @@ public:
 	static void on_accept_remote_connection(p2p_transport *transport, int connection_id, int conn_flag, void *transport_user_data);
 	static void on_connection_recv(p2p_transport *transport, int connection_id, void *transport_user_data, void *connect_user_data, char* data, int len);
 	static void on_tcp_proxy_connected(p2p_transport *transport, void *transport_user_data, void *connect_user_data, unsigned short port, char* addr);
-
+	static void on_dispatch_callback(void* dispatcher, int status, void* user_data, char* server, unsigned short port, unsigned int server_id);
 protected:
-	bool ClearAvClient();
 	bool KickAvClient(int id);
 	bool InsertAvClient(int id);
 
@@ -39,6 +39,7 @@ protected:
 	p2p_transport_cb			m_Cb;
 	p2p_transport_cfg			m_Cfg;
 	p2p_transport*				m_pTransport;
+	void*						m_pDispatcher;
 	char						m_Uid[64];
 	map<int, int>				m_AvClient;
 };
