@@ -51,6 +51,12 @@ void ConnGssP2p::on_connection_recv(p2p_transport *transport, int connection_id,
 {
 	//LOGI_print("transport:%p connection_id:%d", transport, connection_id);
 	if (data == NULL || len == 0) return;
+
+	P2pHead p2pHead;
+	memcpy(&p2pHead, data, sizeof(P2pHead));
+	if (p2pHead.msgType != 0x00F2 && p2pHead.msgType != 0x00F2) 
+		return;
+
 	GosFrameHead head;
 	memcpy(&head, data + sizeof(P2pHead), sizeof(GosFrameHead));
 	int type;
@@ -226,10 +232,11 @@ bool ConnGssP2p::Send(int id, CMD_TYPE_E type, void* data, int len)
 		cmd_len = sizeof(P2pHead);
 		break;
 	case IOTYPE_USER_IPCAM_SETSTREAMCTRL_REQ:
+		head.size = sizeof(SMsgAVIoctrlSetStreamCtrlReq);
 		memcpy(cmd, &head, sizeof(P2pHead));
 		cmd_len += sizeof(P2pHead);
 		SMsgAVIoctrlSetStreamCtrlReq req;
-		req.quality = s_quelity==0?1:0;
+		s_quelity = req.quality = s_quelity == 0 ? 1 : 0;
 		memcpy(cmd + cmd_len, &req, sizeof(SMsgAVIoctrlSetStreamCtrlReq));
 		cmd_len += sizeof(SMsgAVIoctrlSetStreamCtrlReq);
 		break;

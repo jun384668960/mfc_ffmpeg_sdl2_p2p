@@ -251,11 +251,13 @@ void FuncDecodeCallback(AVFrame* pFrame, bool isVideo)
 	{//视频
 		if (gSdlTexture != NULL && gSdlRenderer != NULL)
 		{
-			SDL_UpdateYUVTexture(gSdlTexture, NULL, pFrame->data[0], pFrame->linesize[0],
+			SDL_Rect src = { 0, 0, pFrame->width, pFrame->height };
+			SDL_UpdateYUVTexture(gSdlTexture, &src, pFrame->data[0], pFrame->linesize[0],
 				pFrame->data[1], pFrame->linesize[1],
 				pFrame->data[2], pFrame->linesize[2]);
 			SDL_RenderClear(gSdlRenderer);
-			SDL_RenderCopy(gSdlRenderer, gSdlTexture, NULL, NULL);
+		
+			SDL_RenderCopy(gSdlRenderer, gSdlTexture, &src, NULL);
 			SDL_RenderPresent(gSdlRenderer);
 		}
 	}
@@ -271,7 +273,7 @@ void Cmfc_clientDlg::ThirdPartInit()
 	SetDlgItemText(IDC_COMBO_DISPATCH, "119.23.128.209:6001");
 	SetDlgItemText(IDC_COMBO_STATICSERVER, "119.23.128.209");
 	SetDlgItemText(IDC_EDIT_STATICPORT, "6000");
-	SetDlgItemText(IDC_EDIT_UID, "A99762101001001");
+	SetDlgItemText(IDC_EDIT_UID, "A99762000000013");
 	SetDlgItemText(IDC_COMBO_CONNMODE, "P2P穿透");
 	SetDlgItemText(IDC_COMBO_LOGLEVEL, "Debug");
 	((CButton*)GetDlgItem(IDC_CHECK_DISPATCH))->SetCheck(TRUE);
@@ -317,8 +319,7 @@ void Cmfc_clientDlg::ThirdPartInit()
 	//SDL_UpdateWindowSurface(gWindow);
 	gSdlRenderer = SDL_CreateRenderer(gWindow, -1, 0);
 	gSdlTexture = SDL_CreateTexture(gSdlRenderer, SDL_PIXELFORMAT_IYUV, SDL_TEXTUREACCESS_STREAMING
-		, 640, 480);
-	
+		, 1920, 1080);
 }
 
 void Cmfc_clientDlg::OnBnClickedButtonPlay()
@@ -580,6 +581,6 @@ void Cmfc_clientDlg::OnSelchangeComboLoglevel()
 void Cmfc_clientDlg::OnBnClickedButton1()
 {
 	// TODO:  在此添加控件通知处理程序代码
-	//发送开始断流指令
-	gGssHandle->Send(gP2pClientId, IOTYPE_USER_IPCAM_SETSTREAMCTRL_REQ, "stop", 0);
+	//发送切换清晰度指令
+	gGssHandle->Send(gP2pClientId, IOTYPE_USER_IPCAM_SETSTREAMCTRL_REQ, "stream ctrl", 0);
 }
